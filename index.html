@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Attendance System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>📋 Attendance System</h1>
+
+    <div class="controls">
+      <label>Class/Section: <input type="text" id="className" placeholder="CSE-A"></label>
+      <label>Date: <input type="date" id="dateInput"></label>
+      <button onclick="markAll()">Mark All Present</button>
+      <button onclick="clearAll()">Clear All</button>
+    </div>
+
+    <table id="attendanceTable">
+      <thead>
+        <tr>
+          <th>S.No</th>
+          <th>Roll No</th>
+          <th>Name</th>
+          <th>Morning</th>
+          <th>Afternoon</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="summary">
+      <p id="todaySummary"></p>
+      <p id="overallSummary"></p>
+    </div>
+
+    <div class="actions">
+      <button onclick="saveSession()">💾 Save Session</button>
+      <button onclick="shareToday()">📲 Share Today</button>
+      <button onclick="shareOverall()">📲 Share Overall</button>
+      <button onclick="exportCSV()">📑 Export CSV</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

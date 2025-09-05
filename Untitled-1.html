@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Attendance Manager</title>
+  <style>
+    :root{
+      --bg:#0f172a; /* slate-900 */
+      --card:#111827; /* gray-900 */
+      --muted:#94a3b8; /* slate-400 */
+      --accent:#22c55e; /* green-500 */
+      --accent-2:#3b82f6; /* blue-500 */
+      --danger:#ef4444; /* red-500 */
+      --ring:#334155; /* slate-700 */
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#0b1220,#0f172a);color:#e5e7eb}
+    header{
+      position:sticky;top:0;z-index:50;background:rgba(17,24,39,.9);backdrop-filter: blur(6px);
+      border-bottom:1px solid var(--ring);box-shadow:0 10px 30px rgba(0,0,0,.2)
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    h1{font-weight:800;margin:0 0 10px;font-size:clamp(20px,3vw,28px)}
+    .controls{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;align-items:end}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    input,select,button{border-radius:12px;border:1px solid var(--ring);background:#0b1020;color:#e5e7eb;padding:10px 12px}
+    button{cursor:pointer;transition:.2s transform ease, .2s opacity ease}
+    button:hover{transform:translateY(-1px)}
+    .btn{display:inline-flex;gap:8px;align-items:center;justify-content:center}
+    .btn.primary{background:linear-gradient(135deg,var(--accent),#16a34a);border:none}
+    .btn.blue{background:linear-gradient(135deg,var(--accent-2),#2563eb);border:none}
+    .btn.red{background:linear-gradient(135deg,var(--danger),#b91c1c);border:none}
+    .badges{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--ring);background:#0a0f1d}
+
+    main{max-width:1100px;margin:18px auto;padding:0 18px 70px}
+    .card{background:linear-gradient(180deg,#0d1426,#0c1224);border:1px solid var(--ring);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.35);overflow:hidden}
+    .card h2{margin:0;font-size:16px;color:#cbd5e1}
+    .card .inner{padding:16px}
+
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    thead th{font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:.06em}
+    tbody tr{background:#0b1020;border:1px solid var(--ring)}
+    td,th{padding:10px 12px}
+    tbody tr td:first-child, thead tr th:first-child{border-top-left-radius:12px;border-bottom-left-radius:12px}
+    tbody tr td:last-child, thead tr th:last-child{border-top-right-radius:12px;border-bottom-right-radius:12px}
+
+    .sticky-actions{
+      position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:10px
+    }
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .muted{color:var(--muted)}
+    .search{grid-column: span 3}
+    .date{grid-column: span 3}
+    .section{grid-column: span 3}
+    .cls{grid-column: span 3}
+    .wide{grid-column: span 12}
+    .nowrap{white-space:nowrap}
+    .kpi{display:flex;gap:12px;flex-wrap:wrap}
+    .kpi .pill{padding:8px 12px;border-radius:999px;border:1px solid var(--ring);background:#0a0f1d;font-size:13px}
+    .switch{display:flex;gap:10px;align-items:center}
+    .switch input{accent-color:#22c55e}
+    .center{text-align:center}
+    .right{text-align:right}
+    .small{font-size:12px;color:#94a3b8}
+    .roll{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace}
+    .tools{display:flex;gap:8px;flex-wrap:wrap}
+    .divider{height:1px;background:var(--ring);margin:10px 0}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>📋 Attendance Manager</h1>
+      <div class="controls">
+        <div class="cls">
+          <label>Class / Section</label>
+          <input id="className" placeholder="e.g., CSE-F-1" />
+        </div>
+        <div class="date">
+          <label>Date</label>
+          <input type="date" id="datePicker" />
+        </div>
+        <div class="section">
+          <label>Session</label>
+          <div class="badges">
+            <span class="badge">Morning</span>
+            <div class="tools">
+              <button class="btn" id="markAllMorning">Mark All ✓ (M)</button>
+              <button class="btn red" id="clearAllMorning">Clear ✗ (M)</button>
+            </div>
+          </div>
+          <div class="badges" style="margin-top:6px">
+            <span class="badge">Afternoon</span>
+            <div class="tools">
+              <button class="btn" id="markAllAfternoon">Mark All ✓ (A)</button>
+              <button class="btn red" id="clearAllAfternoon">Clear ✗ (A)</button>
+            </div>
+          </div>
+        </div>
+        <div class="search">
+          <label>Search (Name or Roll)</label>
+          <input id="searchBox" placeholder="Type to filter…" />
+        </div>
+        <div class="wide">
+          <div class="kpi" id="kpiRow"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <div class="inner">
+        <div class="tools" style="margin-bottom:10px">
+          <button class="btn primary" id="saveBtn">Save Session</button>
+          <button class="btn blue" id="shareTodayBtn">Share Today on WhatsApp</button>
+          <button class="btn" id="shareOverallBtn">Share Overall on WhatsApp</button>
+          <button class="btn" id="exportBtn">Export CSV</button>
+          <button class="btn" id="resetTodayBtn">Reset Today</button>
+        </div>
+        <div class="divider"></div>
+        <table id="attendanceTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Roll</th>
+              <th>Name</th>
+              <th class="center">Morning</th>
+              <th class="center">Afternoon</th>
+              <th class="right">Present</th>
+              <th class="right">Total</th>
+              <th class="right">%</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <div class="sticky-actions">
+    <button class="btn primary" id="quickSave">💾 Quick Save</button>
+    <button class="btn blue" id="quickShare">🟢 WhatsApp</button>
+  </div>
+
+  <script>
+    const students = [
+      { sno: 1, roll: "24091A05AA", name: "BOLLAM YASHWANTH" },
+      { sno: 2, roll: "24091A05AB", name: "C HARTHIK" },
+      { sno: 3, roll: "24091A05AC", name: "CH PRAVEEN RAJU" },
+      { sno: 4, roll: "24091A05AD", name: "CHALLA RISHITHA" },
+      { sno: 5, roll: "24091A05AE", name: "CHINNOLLA PRAVALIKA" },
+      { sno: 6, roll: "24091A05AF", name: "DAGE MALLIKA" },
+      { sno: 7, roll: "24091A05AG", name: "DARAVATH SRAVANI" },
+      { sno: 8, roll: "24091A05AH", name: "DASARI KIRAN" },
+      { sno: 9, roll: "24091A05AJ", name: "DEERAVATH JAGADISH NAYAK" },
+      { sno: 10, roll: "24091A05AK", name: "DHEERAVATH TINKU" },
+      { sno: 11, roll: "24091A05AL", name: "G KEERTHI" },
+      { sno: 12, roll: "24091A05AM", name: "GORRIBANDA ANITHA" },
+      { sno: 13, roll: "24091A05AP", name: "GUDEM AKSHAYA" },
+      { sno: 14, roll: "24091A05AR", name: "JAMMULA ABISHAI" },
+      { sno: 15, roll: "24091A05AT", name: "JEELA ALEKHYA" },
+      { sno: 16, roll: "24091A05AU", name: "K SAI CHANDRA" },
+      { sno: 17, roll: "24091A05AV", name: "KALYANKAR SAITEJA" },
+      { sno: 18, roll: "24091A05AW", name: "KANIKATLA NISHAD" },
+      { sno: 19, roll: "24091A05AX", name: "KARIPE PRANEETH" },
+      { sno: 20, roll: "24091A05AY", name: "KATIGHAR VAAGDEVI" },
+      { sno: 21, roll: "24091A05AZ", name: "KOLA APARNA" },
+      { sno: 22, roll: "24091A05BA", name: "KONDA LAKSHMI" },
+      { sno: 23, roll: "24091A05BB", name: "KOTA NANDINI" },
+      { sno: 24, roll: "24091A05BC", name: "KOTA SHASHANTH" },
+      { sno: 25, roll: "24091A05BD", name: "KOTAGIRI RAKESH" },
+      { sno: 26, roll: "24091A05BE", name: "KUKKARIKALLA KALYANI" },
+      { sno: 27, roll: "24091A05BF", name: "LALAGARI HARIKA" },
+      { sno: 28, roll: "24091A05BG", name: "MADUNAGULA JYOSHNA" },
+      { sno: 29, roll: "24091A05BH", name: "MAMIDI KARTHIK" },
+      { sno: 30, roll: "24091A05BJ", name: "MANDRU SUSAN" },
+      { sno: 31, roll: "24091A05BK", name: "MARYADA KEERTHI" },
+      { sno: 32, roll: "24091A05BL", name: "MEDI DEEPTHI SREE" },
+      { sno: 33, roll: "24091A05BM", name: "MEKALA JAYANTH" },
+      { sno: 34, roll: "24091A05BN", name: "MIRIYALA V S D S MUKUNDA SHARMA" },
+      { sno: 35, roll: "24091A05BP", name: "MOHAMMAD ABRAR" },
+      { sno: 36, roll: "24091A05BQ", name: "MOHAMMAD SAIF PARVEZ" },
+      { sno: 37, roll: "24091A05BT", name: "NOMULA BHASKAR" },
+      { sno: 38, roll: "24091A05BU", name: "NUTHANAPATI NAVADEEP" },
+      { sno: 39, roll: "24091A05BV", name: "P VINAY TAGORE GOUD" },
+      { sno: 40, roll: "24091A05BW", name: "PALADUGU SIGNAVI" },
+      { sno: 41, roll: "24091A05BX", name: "PEDDINTI PRASHANTH KUMAR" },
+      { sno: 42, roll: "24091A05BY", name: "RAMPALLI MANOJ KUMAR" },
+      { sno: 43, roll: "24091A05BZ", name: "RAYALA KARTHIKEYA" },
+      { sno: 44, roll: "24091A05CA", name: "SHAIK BEHAD SEYANAA" },
+      { sno: 45, roll: "24091A05CB", name: "SHAIK NISHAT" },
+      { sno: 46, roll: "24091A05CC", name: "SINGARAPU PREM" },
+      { sno: 47, roll: "24091A05CD", name: "SUNKARA MOHAN ANJI REDDY" },
+      { sno: 48, roll: "24091A05CE", name: "TALARI RAJ KUMAR" },
+      { sno: 49, roll: "24091A05CF", name: "TEJAVATH ARUN" },
+      { sno: 50, roll: "24091A05CG", name: "THUMKUNTA SAI PAVAN GOUD" },
+      { sno: 51, roll: "24091A05CH", name: "V CHARITHA" },
+      { sno: 52, roll: "24091A05CJ", name: "VANKUDOTH SATHISH" },
+      { sno: 53, roll: "24091A05CK", name: "YABNOD SHIVPRASAD" },
+      { sno: 54, roll: "24091A05CL", name: "YEDLA GNANAVYSHNAVI" },
+      { sno: 55, roll: "24091A05Z4", name: "ANUMALA SIDVITHA" },
+      { sno: 56, roll: "24091A05Z5", name: "ASKKANI SINDUJA" },
+      { sno: 57, roll: "24091A05Z6", name: "AVADHANAM PARTHIV KUMAR" },
+      { sno: 58, roll: "24091A05Z7", name: "AVULA KARTHIKEYA" },
+      { sno: 59, roll: "24091A05Z8", name: "BAINDLA UPENDAR" },
+      { sno: 60, roll: "24091A05Z9", name: "BANOTH SANDEEP" }
+    ];
+
+    // ---- Storage helpers ----
+    const LS_KEY = 'att_manager_v2';
+    function getStore(){
+      try{ return JSON.parse(localStorage.getItem(LS_KEY)) || { sessions:{} }; }
+      catch(e){ return { sessions:{} } }
+    }
+    function setStore(data){ localStorage.setItem(LS_KEY, JSON.stringify(data)); }
+
+    function todayStr(){
+      const tzOffset = new Date().getTimezoneOffset();
+      const t = new Date(Date.now() - tzOffset*60*1000); // local date in ISO
+      return t.toISOString().slice(0,10);
+    }
+
+    const datePicker = document.getElementById('datePicker');
+    const searchBox = document.getElementById('searchBox');
+    const tableBody = document.querySelector('#attendanceTable tbody');
+    const kpiRow = document.getElementById('kpiRow');
+
+    function renderTable(filter=''){
+      const store = getStore();
+      const date = datePicker.value || todayStr();
+      const day = store.sessions[date] || {};
+      tableBody.innerHTML = '';
+      const q = filter.trim().toLowerCase();
+
+      for(const s of students){
+        if(q && !(s.name.toLowerCase().includes(q) || s.roll.toLowerCase().includes(q))) continue;
+        const rec = (day[s.roll]) || { M:false, A:false };
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="nowrap">${s.sno}</td>
+          <td class="roll">${s.roll}</td>
+          <td>${s.name}</td>
+          <td class="center"><input type="checkbox" class="mChk" data-roll="${s.roll}" ${rec.M? 'checked':''}></td>
+          <td class="center"><input type="checkbox" class="aChk" data-roll="${s.roll}" ${rec.A? 'checked':''}></td>
+          <td class="right presentCount">0</td>
+          <td class="right totalCount">0</td>
+          <td class="right percentCell">0%</td>
+        `;
+        tableBody.appendChild(tr);
+      }
+      bindRowListeners();
+      updateKPIs();
+      updateTotals();
+    }
+
+    function bindRowListeners(){
+      tableBody.querySelectorAll('input[type="checkbox"]').forEach(chk=>{
+        chk.addEventListener('change', ()=>{
+          updateKPIs();
+        })
+      });
+    }
+
+    function updateKPIs(){
+      const [mp, ap] = countToday();
+      const total = students.length;
+      const className = document.getElementById('className').value || 'Class';
+      const date = datePicker.value || todayStr();
+      const perc = (((mp+ap) / (2*total)) * 100) || 0;
+      kpiRow.innerHTML = `
+        <span class="pill">📆 ${date}</span>
+        <span class="pill">🏫 ${className}</span>
+        <span class="pill">☀️ Morning: <b>${mp}</b> / ${total}</span>
+        <span class="pill">🌤️ Afternoon: <b>${ap}</b> / ${total}</span>
+        <span class="pill">📊 Today's Class %: <b>${perc.toFixed(1)}%</b></span>
+      `;
+    }
+
+    function countToday(){
+      let mp=0, ap=0;
+      tableBody.querySelectorAll('.mChk').forEach(ch=>{ if(ch.checked) mp++; });
+      tableBody.querySelectorAll('.aChk').forEach(ch=>{ if(ch.checked) ap++; });
+      return [mp, ap];
+    }
+
+    function saveSession(){
+      const date = datePicker.value || todayStr();
+      const store = getStore();
+      store.sessions[date] = store.sessions[date] || {};
+      const day = store.sessions[date];
+      tableBody.querySelectorAll('tr').forEach(tr=>{
+        const roll = tr.querySelector('.mChk')?.dataset.roll;
+        if(!roll) return;
+        day[roll] = {
+          M: tr.querySelector('.mChk').checked,
+          A: tr.querySelector('.aChk').checked,
+        };
+      });
+      setStore(store);
+      toast('Session saved ✅');
+      updateTotals();
+    }
+
+    function updateTotals(){
+      // compute overall per student totals across all saved dates
+      const store = getStore();
+      const totals = {}; // roll -> {present,total}
+      for(const s of students){ totals[s.roll] = {present:0,total:0}; }
+      for(const date in store.sessions){
+        const day = store.sessions[date];
+        for(const s of students){
+          const rec = day[s.roll];
+          if(rec){
+            totals[s.roll].total += 2;
+            totals[s.roll].present += (rec.M?1:0) + (rec.A?1:0);
+          }
+        }
+      }
+      // write into current filtered rows
+      tableBody.querySelectorAll('tr').forEach(tr=>{
+        const roll = tr.querySelector('.mChk')?.dataset.roll;
+        const t = totals[roll] || {present:0,total:0};
+        tr.querySelector('.presentCount').textContent = t.present;
+        tr.querySelector('.totalCount').textContent = t.total;
+        const pct = t.total? ((t.present/t.total)*100).toFixed(1): '0.0';
+        tr.querySelector('.percentCell').textContent = pct + '%';
+      });
+    }
+
+    function markAll(which, checked){
+      const sel = which==='M' ? '.mChk' : '.aChk';
+      tableBody.querySelectorAll(sel).forEach(ch=>{ ch.checked = checked; });
+      updateKPIs();
+    }
+
+    function resetToday(){
+      tableBody.querySelectorAll('.mChk,.aChk').forEach(ch=> ch.checked=false);
+      updateKPIs();
+    }
+
+    function exportCSV(){
+      const store = getStore();
+      const rows = [['S.No','Roll','Name','Present','Total','%']];
+      // compute totals first
+      const totals = {}; for(const s of students){ totals[s.roll]={present:0,total:0,name:s.name,sno:s.sno}; }
+      for(const date in store.sessions){
+        const day = store.sessions[date];
+        for(const s of students){
+          const rec = day[s.roll];
+          if(rec){ totals[s.roll].total+=2; totals[s.roll].present += (rec.M?1:0)+(rec.A?1:0); }
+        }
+      }
+      for(const s of students){
+        const t = totals[s.roll];
+        const pct = t.total? ((t.present/t.total)*100).toFixed(1): '0.0';
+        rows.push([t.sno, s.roll, s.name, t.present, t.total, pct+'%']);
+      }
+      const csv = rows.map(r=> r.map(x=> '"'+String(x).replaceAll('"','""')+'"').join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'attendance_export.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function buildWhatsAppTextToday(){
+      const className = document.getElementById('className').value || 'Class';
+      const date = datePicker.value || todayStr();
+      const total = students.length;
+      const [mp, ap] = countToday();
+      const absentM = []; const absentA = [];
+      tableBody.querySelectorAll('tr').forEach(tr=>{
+        const nm = tr.children[2].textContent.trim();
+        const roll = tr.children[1].textContent.trim();
+        const m = tr.querySelector('.mChk').checked;
+        const a = tr.querySelector('.aChk').checked;
+        if(!m) absentM.push(roll);
+        if(!a) absentA.push(roll);
+      });
+      const pct = (((mp+ap)/(2*total))*100).toFixed(1);
+      let txt = `*Attendance – ${className}*\nDate: ${date}\nMorning: ${mp}/${total}\nAfternoon: ${ap}/${total}\nClass % (today): ${pct}%\n`;
+      txt += `\n*Absent (M):* ${absentM.length? absentM.join(', '): '—'}`;
+      txt += `\n*Absent (A):* ${absentA.length? absentA.join(', '): '—'}`;
+      return encodeURIComponent(txt);
+    }
+
+    function buildWhatsAppTextOverall(){
+      const className = document.getElementById('className').value || 'Class';
+      const store = getStore();
+      const totals = {}; for(const s of students){ totals[s.roll]={present:0,total:0}; }
+      for(const date in store.sessions){
+        const day = store.sessions[date];
+        for(const s of students){
+          const rec = day[s.roll];
+          if(rec){ totals[s.roll].total+=2; totals[s.roll].present += (rec.M?1:0)+(rec.A?1:0); }
+        }
+      }
+      const lines = [`*Overall Attendance – ${className}*`];
+      lines.push('Roll  %');
+      for(const s of students){
+        const t = totals[s.roll];
+        const pct = t.total? ((t.present/t.total)*100).toFixed(1): '0.0';
+        lines.push(`${s.roll}  ${pct}%`);
+      }
+      return encodeURIComponent(lines.join('\n'));
+    }
+
+    function shareWhatsAppToday(){
+      const text = buildWhatsAppTextToday();
+      window.open(`https://wa.me/?text=${text}`, '_blank');
+    }
+    function shareWhatsAppOverall(){
+      const text = buildWhatsAppTextOverall();
+      window.open(`https://wa.me/?text=${text}`, '_blank');
+    }
+
+    // Event wiring
+    document.getElementById('saveBtn').addEventListener('click', saveSession);
+    document.getElementById('quickSave').addEventListener('click', saveSession);
+    document.getElementById('shareTodayBtn').addEventListener('click', shareWhatsAppToday);
+    document.getElementById('quickShare').addEventListener('click', shareWhatsAppToday);
+    document.getElementById('shareOverallBtn').addEventListener('click', shareWhatsAppOverall);
+    document.getElementById('exportBtn').addEventListener('click', exportCSV);
+    document.getElementById('resetTodayBtn').addEventListener('click', resetToday);
+
+    document.getElementById('markAllMorning').addEventListener('click', ()=>markAll('M', true));
+    document.getElementById('clearAllMorning').addEventListener('click', ()=>markAll('M', false));
+    document.getElementById('markAllAfternoon').addEventListener('click', ()=>markAll('A', true));
+    document.getElementById('clearAllAfternoon').addEventListener('click', ()=>markAll('A', false));
+
+    datePicker.addEventListener('change', ()=> renderTable(searchBox.value));
+    searchBox.addEventListener('input', ()=> renderTable(searchBox.value));
+
+    function toast(msg){
+      const t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#0b1020;border:1px solid var(--ring);padding:10px 14px;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,.4);z-index:9999';
+      document.body.appendChild(t);
+      setTimeout(()=>t.remove(), 1800);
+    }
+
+    // init
+    datePicker.value = todayStr();
+    renderTable();
+  </script>
+</body>
+</html>
